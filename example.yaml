@@ -1,0 +1,35 @@
+access_log_watcher :
+    directory : /tmp/testdir
+    recurse : false
+    filemask : access_log_YYYYMMDD.*
+    actions :
+      # Actions to perform on the file in sequence. processFile action will _not_ be performed
+      # if any of the preceding actions exit with a non-zero exit code
+      - checkFile :
+          args:
+            - $filename
+            - YYYYMMDD
+          cmd: echo
+      - processFile :
+          args:
+            - $filename
+            - YYYYMMDD
+          cmd: process
+
+other_watcher :
+    directory : /tmp/testdir2
+    recurse : true
+    filemask : other_log_YYYYMMDD.*
+    actions :
+      # Actions to perform on the file in sequence. processFile action will _not_ be performed
+      # if any of the preceding actions exit with a non-zero exit code
+      - checkFile :
+          args:
+            - $filename
+            - YYYYMMDD
+          cmd: echo
+      - processFile :
+          args:
+            - $filename
+            - YYYYMMDD
+          cmd: process
