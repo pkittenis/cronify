@@ -6,7 +6,7 @@ import logging
 import sys
 import threadpool
 import subprocess
-import pytz
+# import pytz
 import datetime
 import re
 
@@ -229,12 +229,13 @@ class Watcher(object):
                 sys.exit(1)
             recurse = watch_data[watcher]['recurse'] if 'recurse' in watch_data[watcher] else False
             watch_manager = pyinotify.WatchManager()
-            notifier = pyinotify.ThreadedNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'],
+            notifier = pyinotify.ThreadedNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'].copy(),
                                                                               self.tp,
                                                                               callback_func = self.callback_func))
+            notifier.daemon = True
             notifier.start()
             watch_manager.add_watch(watch_dir, _MASKS, rec = recurse, auto_add = True)
-            logger.info("Started watching directory %s with filemasks and actions %s and recurse %s.." %
+            logger.info("Started watching directory %s with filemasks and actions %s, recurse %s.." %
                         (watch_dir,
                          watch_data[watcher]['filemasks'],
                          recurse,))
@@ -250,6 +251,7 @@ class Watcher(object):
 
     def cleanup(self):
         """Stop watchers, shutdown notifiers"""
+        logger.info("Got cleanup signal, shutting down notifiers..")
         [wm.rm_watch(wm.watches.keys()) for wm in self.watch_managers]
         [notifier.stop() for notifier in self.notifiers]
 
@@ -257,26 +259,28 @@ def callback_func(event):
     print "Got event for %s" % (event.name,)
 
 def test():
+    """Run with some test watch data when executed as a script"""
     watch_data = {'/tmp/testdir': {'name': 'Some file',
-                                   'filemasks': { 'somefile.txt' : {
-                                       'actions': [
-                                           { 'checkFile': {
-                                               'cmd': 'echo',
-                                               # 'when' : 'today',
-                                               # 'days' : '1-5',
-                                               # 'start_time' : '20:00:00',
-                                               # 'end_time' : '21:00:00',
-                                               'args': ['$filename', 'YYYYMMDD']}},]
-                                       },
-                                                  'otherfile_YYYYMMDD.txt' : {
-                                                      'actions': [
-                                                          { 'checkFile': {'cmd': 'echo',
-                                                                          'when' : 'today',
-                                                                          # 'days' : '1-5',
-                                                                          'start_time' : '20:00:00',
-                                                                          'end_time' : '21:00:00',
-                                                                          'args': ['$filename', 'YYYYMMDD']}},]
-                                                      },},
+                                   'filemasks': {
+                'somefile_YYYYMMDD.*' : {
+                    'actions': [
+                        { 'checkFile': {
+                                'cmd': 'echo',
+                                # 'when' : 'today',
+                                # 'days' : '1-5',
+                                # 'start_time' : '20:00:00',
+                                # 'end_time' : '21:00:00',
+                                'args': ['$filename', 'YYYYMMDD']}},]
+                    },
+                'otherfile_YYYYMMDD.txt' : {
+                    'actions': [
+                        { 'checkFile': {'cmd': 'echo',
+                                        'when' : 'today',
+                                        # 'days' : '1-5',
+                                        'start_time' : '20:00:00',
+                                        'end_time' : '21:00:00',
+                                        'args': ['$filename', 'YYYYMMDD']}},]
+                    },},
                                    'recurse' : False,
                                    }
                   }
@@ -292,11 +296,7 @@ def test():
         try:
             time.sleep(5)
         except KeyboardInterrupt:
-            # print "Trying to shutdown"
-            # watcher.cleanup()
             sys.exit(0)
-
-# _setup_logger(logger)
 
 if __name__ == "__main__":
     _setup_logger(logger)

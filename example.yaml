@@ -15,32 +15,16 @@
     recurse : true
     filemasks :
       other_log_YYYYMMDD.* :
-         # If this flag is set, subsequent actions will _not_ be performed if any of the preceding actions exit with a non-zero exit code
-         stop_on_error : true
          actions :
           # Actions to perform on the file in sequence.
           - processFile :
-            # Only perform action if file datestamp matches value of 'when'.
-            # EG `when : today` would only perform the action if the file has today's datestamp.
-            # Datestamp is taken from file modified time OR datestamp from filename in the YYYYMMDD format
-            # with precedence given to datestamp in filename
-            # Accepted when values are 'today', 'yesterday', 'tomorrow'
-            when: today
-            # Flag to set values of 'when' to mean business days. Currently NotImplemented
-            when_is_business_day : true
-            # Do not start action before this time. Action is queued until start_time if triggered prior to it
+            # Do not start action before this time. Action is queued until start_time if triggered prior to it.
+            # This configuration setting is optional
             start_time: 0800
             # Do not start action after this time. Action is queued until next start_time if triggered after end time
+            # This configuration setting is optional
             end_time: 1000
             args:
               - $filename
               - YYYYMMDD
             cmd: process
-         # Commands to run to verify the file
-         # Actions will not be performed if any configured filecheck fails, meaning a non-zero exit code
-         filechecks :
-           - checkFile :
-               args:
-                - $filename
-                - YYYYMMDD
-               cmd: echo
