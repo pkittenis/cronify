@@ -33,17 +33,17 @@ $ cat /etc/cronify.yaml
 
 .. code-block:: yaml
 
-/tmp/testdir :
-    name : Access log watcher
-    recurse : false
-    filemasks :
-      somefile.* :
-        actions :
-          - processFile :
-              args:
-                - $filename
-                - YYYYMMDD
-              cmd: echo``
+	/tmp/testdir :
+	    name : Access log watcher
+	    recurse : false
+	    filemasks :
+	      somefile.* :
+	        actions :
+	          - processFile :
+	              args:
+	                - $filename
+	                - YYYYMMDD
+	              cmd: echo``
 
 ::
 
@@ -65,36 +65,36 @@ See example.yaml in repository for complete list of accepted configuration
 
 .. code-block:: yaml
 
-/tmp/testdir :
-    name : Access log watcher
-    recurse : false
-    filemasks :
-      access_log_YYYYMMDD.* :
-        actions :
-          - processFile :
-              args:
-                - $filename
-                - YYYYMMDD
-              cmd: process
+	/tmp/testdir :
+	    name : Access log watcher
+	    recurse : false
+	    filemasks :
+	      access_log_YYYYMMDD.* :
+	        actions :
+	          - processFile :
+	              args:
+	                - $filename
+	                - YYYYMMDD
+	              cmd: process
 
-/tmp/testdir2 :
-    name : Other log watcher
-    recurse : true
-    filemasks :
-      other_log_YYYYMMDD.* :
-         actions :
-          # Actions to perform on the file in sequence.
-          - processFile :
-            # Do not start action before this time. Action is queued until start_time if triggered prior to it.
-            # This configuration setting is optional
-            start_time: 0800
-            # Do not start action after this time. Action is queued until next start_time if triggered after end time
-            # This configuration setting is optional
-            end_time: 1000
-            args:
-              - $filename
-              - YYYYMMDD
-            cmd: process
+	/tmp/testdir2 :
+	    name : Other log watcher
+	    recurse : true
+	    filemasks :
+	      other_log_YYYYMMDD.* :
+	         actions :
+	          # Actions to perform on the file in sequence.
+	          - processFile :
+	            # Do not start action before this time. Action is queued until start_time if triggered prior to it.
+	            # This configuration setting is optional
+	            start_time: 0800
+	            # Do not start action after this time. Action is queued until next start_time if triggered after end time
+	            # This configuration setting is optional
+	            end_time: 1000
+	            args:
+	              - $filename
+	              - YYYYMMDD
+	            cmd: process
 
 
 ************
