@@ -30,7 +30,9 @@ Configuration Example
 ************
 
 $ cat /etc/cronify.yaml
-``
+
+::
+
 /tmp/testdir :
     name : Access log watcher
     recurse : false
@@ -41,16 +43,16 @@ $ cat /etc/cronify.yaml
               args:
                 - $filename
                 - YYYYMMDD
-              cmd: echo
-``
+              cmd: echo``
+
 ::
 
 	$ sudo /etc/init.d/cronifyd start
 	$ touch /tmp/testdir/somefile.txt
 	$ tail /var/log/cronify/cronify.log
-``
-cronify.cronify - Thread-1 - 2013-03-26 17:40:40,485 - INFO - Got result from action {'cmd': 'echo', 'args': ['echo', '/tmp/testdir/somefile.txt', '20130326']} - /tmp/testdir/somefile.txt 20130326
-``
+
+	cronify.cronify - Thread-1 - 2013-03-26 17:40:40,485 - INFO - Got result from action {'cmd': 'echo', 'args': ['echo', '/tmp/testdir/somefile.txt', '20130326']} - /tmp/testdir/somefile.txt 20130326
+
 
 ************
 More complex configuration with multiple watchers and delayed actions
@@ -58,8 +60,9 @@ More complex configuration with multiple watchers and delayed actions
 
 See example.yaml in repository for complete list of accepted configuration
 
+::
+
 $ cat /etc/cronify.yaml
-``
 /tmp/testdir :
     name : Access log watcher
     recurse : false
@@ -90,7 +93,7 @@ $ cat /etc/cronify.yaml
               - $filename
               - YYYYMMDD
             cmd: process
-``
+
 
 ************
 Known limitations
