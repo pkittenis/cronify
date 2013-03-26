@@ -31,7 +31,7 @@ Configuration Example
 
 $ cat /etc/cronify.yaml
 
-::
+.. code-block:: yaml
 
 /tmp/testdir :
     name : Access log watcher
@@ -60,9 +60,11 @@ More complex configuration with multiple watchers and delayed actions
 
 See example.yaml in repository for complete list of accepted configuration
 
-::
 
-$ cat /etc/cronify.yaml
+``$ cat /etc/cronify.yaml``
+
+.. code-block:: yaml
+
 /tmp/testdir :
     name : Access log watcher
     recurse : false
