@@ -21,8 +21,8 @@ Requires a running Linux kernel >=2.6.13
 ::
 
 	$ sudo pip install cronify
-	Install a /etc/cronify.yaml file as in the examples below
-	Start the cronify daemon with the provided init script
+	# Install a /etc/cronify.yaml file as in the examples below
+	# Once a configuration file is in place, start the cronify daemon with the provided init script
 	$ sudo /etc/init.d/cronifyd start
 
 ************
@@ -30,7 +30,8 @@ Configuration Example
 ************
 
 $ cat /etc/cronify.yaml
-``/tmp/testdir :
+``
+/tmp/testdir :
     name : Access log watcher
     recurse : false
     filemasks :
@@ -40,13 +41,16 @@ $ cat /etc/cronify.yaml
               args:
                 - $filename
                 - YYYYMMDD
-              cmd: echo``
+              cmd: echo
+``
+::
 
-$ sudo /etc/init.d/cronifyd start
-$ touch /tmp/testdir/somefile.txt
-$ tail /var/log/cronify/cronify.log
-``cronify.cronify - Thread-1 - 2013-03-26 17:40:40,485 - INFO - Got result from action {'cmd': 'echo', 'args': ['echo', '/tmp/testdir/somefile.txt', '20130326']} - /tmp/testdir/somefile.txt 20130326``
-
+	$ sudo /etc/init.d/cronifyd start
+	$ touch /tmp/testdir/somefile.txt
+	$ tail /var/log/cronify/cronify.log
+``
+cronify.cronify - Thread-1 - 2013-03-26 17:40:40,485 - INFO - Got result from action {'cmd': 'echo', 'args': ['echo', '/tmp/testdir/somefile.txt', '20130326']} - /tmp/testdir/somefile.txt 20130326
+``
 
 ************
 More complex configuration with multiple watchers and delayed actions
@@ -55,7 +59,8 @@ More complex configuration with multiple watchers and delayed actions
 See example.yaml in repository for complete list of accepted configuration
 
 $ cat /etc/cronify.yaml
-``/tmp/testdir :
+``
+/tmp/testdir :
     name : Access log watcher
     recurse : false
     filemasks :
@@ -84,7 +89,8 @@ $ cat /etc/cronify.yaml
             args:
               - $filename
               - YYYYMMDD
-            cmd: process``
+            cmd: process
+``
 
 ************
 Known limitations
@@ -95,8 +101,11 @@ Known limitations
 - Reloading of the cronify configuration file is not yet possible without a restart.
 
 - When using recurse, inotify is limited to watching N number of subdirectories in the tree, where N is value of /proc/sys/fs/inotify/max_user_watches. See http://linux.die.net/man/7/inotify
+
   User can increase this limit by modifying /proc/sys/fs/inotify/max_user_watches
 
 - When watching an NFS directory on NFS server side, only events made by the NFS *server* will be seen by the inotify API and following, cronify itself.
+
   When watching an NFS directory on NFS client side, no events are seen by inotify at all.
+
   In other words if you were planning on watching for a file that is created by an NFS *client*, this is currently not possible.
