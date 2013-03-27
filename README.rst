@@ -21,13 +21,14 @@ Requires a running Linux kernel >=2.6.13
 ::
 
 	$ sudo pip install cronify
+	$ sudo chmod +x /etc/init.d/cronifyd
 	# Install a /etc/cronify.yaml file as in the examples below
 	# Once a configuration file is in place, start the cronify daemon with the provided init script
 	$ sudo /etc/init.d/cronifyd start
 
-************
+***********************
 Configuration Example
-************
+***********************
 
 $ cat /etc/cronify.yaml
 
@@ -54,9 +55,9 @@ $ cat /etc/cronify.yaml
 	cronify.cronify - Thread-1 - 2013-03-26 17:40:40,485 - INFO - Got result from action {'cmd': 'echo', 'args': ['echo', '/tmp/testdir/somefile.txt', '20130326']} - /tmp/testdir/somefile.txt 20130326
 
 
-************
+***********************************************************************
 More complex configuration with multiple watchers and delayed actions
-************
+***********************************************************************
 
 See example.yaml in repository for complete list of accepted configuration
 
@@ -97,9 +98,9 @@ See example.yaml in repository for complete list of accepted configuration
 	            cmd: process
 
 
-************
+*******************
 Known limitations
-************
+*******************
 
 - Currently queued actions will be _lost_ upon a service restart.
 
