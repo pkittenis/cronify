@@ -77,7 +77,7 @@ class EventHandler(pyinotify.ProcessEvent):
             if not filemask.match(event.name):
                 logger.debug("Filename %s did not match filemask pattern %s" % (event.name, filemask.pattern,))
                 continue
-            logger.debug("Matched filename %s with filemask %s from event %s" % (event.name, filemask, event.maskname,))
+            logger.debug("Matched filename %s with filemask %s from event %s" % (event.name, filemask.pattern, event.maskname,))
             self.threadpool.add_task_to_queue(self.do_actions, event, self.filemask_actions[filemask]['actions'])
 
     def _parse_action_args(self, event, action_args):
@@ -149,7 +149,7 @@ class EventHandler(pyinotify.ProcessEvent):
     def _do_action(self, event, action, action_data):
         """Perform a single action"""
         action_metadata = self._parse_action_metadata(action_data)
-        action_args, file_metadata = self._parse_action_args(event, action_data['args'])
+        action_args, file_metadata = self._parse_action_args(event, action_data['args'][:])
         logger.debug("Made expanded action arguments %s" % (action_args,))
         action_args.insert(0, action_data['cmd'])
         if action_metadata and 'start_time' in action_metadata and 'end_time' in action_metadata:
@@ -158,17 +158,20 @@ class EventHandler(pyinotify.ProcessEvent):
                                            file_metadata['datestamp'].day, action_metadata['start_time'].hour,
                                            action_metadata['start_time'].minute, action_metadata['start_time'].second)
             if now < start_time:
-                logger.info("Action start time %s is in the future, waiting for %s hh:mm:SS" % (start_time, start_time - now,))
+                logger.info("Action start time %s is in the future, waiting for %s hh:mm:SS" %
+                            (start_time, start_time - now,))
                 time.sleep((start_time - now).seconds)
             elif now > start_time:
-                logger.info("Action start time %s is in the past, not triggering action" % (start_time,))
+                logger.info("Action start time %s is in the past, not triggering action" %
+                            (start_time,))
                 return
         if self.callback_func:
             self.callback_func(event)
         returncode, stdout, stderr = run_script(action_args)
         logger.info("Got result from action %s - %s" % (action_data, stdout,))
         if returncode:
-            logger.error("Action %s failed with exit code %s, stderr %s" % (action, returncode, stderr,))
+            logger.error("Action %s failed with exit code %s, stderr %s" %
+                         (action, returncode, stderr,))
 
 class Watcher(object):
 
@@ -238,7 +241,7 @@ class Watcher(object):
         for watcher in watch_data:
             watch_dir = self._check_dir(watcher)
             if not watch_dir:
-                logger.critical("Desired directory to watch %s does not exist or is not a directory. Exiting." % (watch_dir,))
+                logger.critical("Desired directory to watch %s does not exist or is not a directory. Exiting." % (watcher,))
                 sys.exit(1)
             recurse = watch_data[watcher]['recurse'] if 'recurse' in watch_data[watcher] else False
             watch_manager = pyinotify.WatchManager()
@@ -276,7 +279,7 @@ def test():
     """Run with some test watch data when executed as a script"""
     watch_data = {'/tmp/testdir': {'name': 'Some file',
                                    'filemasks': {
-                'somefile_YYYYMMDD.*' : {
+                'somefile.*' : {
                     'actions': [
                         { 'checkFile': {
                                 'cmd': 'echo',
@@ -285,8 +288,10 @@ def test():
                                 # 'start_time' : '20:00:00',
                                 # 'end_time' : '21:00:00',
                                 'args': ['$filename', 'YYYYMMDD']}},]
-                    },
-                'otherfile_YYYYMMDD.txt' : {
+                    }, } },
+                  '/tmp/otherdir' : {'name': 'Other file',
+                                     'filemasks': {
+                'otherfile.*' : {
                     'actions': [
                         { 'checkFile': {'cmd': 'echo',
                                         'when' : 'today',
@@ -298,13 +303,6 @@ def test():
                                    'recurse' : False,
                                    }
                   }
-    # '/tmp/testdir' : {'name': 'Other file',
-    #                                 'filemasks': { ,
-    #                                 'recurse': False,
-    #                                 }
-    # {'processFile': {'cmd': 'process', 'args': ['$filename', 'YYYYMMDD']}}
-    # watch_data = { '/tmp/' : { 'name' : 'Fake', 'filemasks' : { 'somefilemask' : { 'actions' : [] } } } }
-    # watcher = Watcher(watch_data, callback_func = callback_func)
     watcher = Watcher(watch_data)
     while 1:
         try:
