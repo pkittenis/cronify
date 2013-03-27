@@ -1,3 +1,6 @@
+
+"""Main cronify package. Contains main Watcher class and EventHandler"""
+
 import os
 import pyinotify
 import time
@@ -36,6 +39,11 @@ def run_script(cmd_args):
     return p.returncode, stdout, stderr
 
 class EventHandler(pyinotify.ProcessEvent):
+
+    """pyinotify.ProcessEvent subclass, implements handlers for our actions
+    Triggers actions on events that match our filemasks, queues/runs actions and
+    outputs action results"""
+
     _filename_keyword = '$filename'
     _datestamp_re = r'\d{4}\d{2}\d{2}'
     _datestamp_rc = re.compile(_datestamp_re)
@@ -45,8 +53,9 @@ class EventHandler(pyinotify.ProcessEvent):
     # 'somefile.txt' : [ { 'action1' : { 'cmd' : 'echo', <..> } }, ],
     # 'otherfile.txt' : [ { 'action1' : { 'cmd' : 'cat', <..> } }, ],
     # }
-    def __init__(self, filemask_actions, tp, callback_func = None):
-        self.filemask_actions, self.tp = filemask_actions, tp
+    def __init__(self, filemask_actions, threadpool, callback_func = None):
+        pyinotify.ProcessEvent.__init__(self)
+        self.filemask_actions, self.threadpool = filemask_actions, threadpool
         self.callback_func = callback_func
         for filemask in self.filemask_actions.copy():
             new_filemask = self._parse_filemask(filemask)
@@ -54,8 +63,12 @@ class EventHandler(pyinotify.ProcessEvent):
             del self.filemask_actions[filemask]
 
     def process_IN_CLOSE_WRITE(self, event):
+        """IN_CLOSE_WRITE event handler
+        Just redirects to self.handle_event"""
         self.handle_event(event)
     def process_IN_MOVED_FROM(self, event):
+        """IN_MOVED_FROM event handler
+        Just redirects to self.handle_event"""
         self.handle_event(event)
 
     def handle_event(self, event):
@@ -65,7 +78,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 logger.debug("Filename %s did not match filemask pattern %s" % (event.name, filemask.pattern,))
                 continue
             logger.debug("Matched filename %s with filemask %s from event %s" % (event.name, filemask, event.maskname,))
-            self.tp.add_task_to_queue(self.do_actions, event, self.filemask_actions[filemask]['actions'])
+            self.threadpool.add_task_to_queue(self.do_actions, event, self.filemask_actions[filemask]['actions'])
 
     def _parse_action_args(self, event, action_args):
         """Parse action_args, return args with expanded keywords and file metadata
@@ -198,7 +211,7 @@ class Watcher(object):
             logger.critical("Missing required configuration, exiting")
             sys.exit(1)
         self.watch_data = watch_data
-        self.tp = threadpool.ThreadPool(num_workers = 10)
+        self.threadpool = threadpool.ThreadPool(num_workers = 10)
         self.start_watchers(watch_data)
 
     def _check_data_fields(self, data, req_fields):
@@ -230,7 +243,7 @@ class Watcher(object):
             recurse = watch_data[watcher]['recurse'] if 'recurse' in watch_data[watcher] else False
             watch_manager = pyinotify.WatchManager()
             notifier = pyinotify.ThreadedNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'].copy(),
-                                                                              self.tp,
+                                                                              self.threadpool,
                                                                               callback_func = self.callback_func))
             notifier.daemon = True
             notifier.start()
@@ -256,6 +269,7 @@ class Watcher(object):
         [notifier.stop() for notifier in self.notifiers]
 
 def callback_func(event):
+    """Test function for callback_func optional parameter of Watcher class"""
     print "Got event for %s" % (event.name,)
 
 def test():

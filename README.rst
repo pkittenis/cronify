@@ -30,7 +30,7 @@ Requires a running Linux kernel >=2.6.13
 Configuration Example
 ***********************
 
-$ cat /etc/cronify.yaml
+``$ cat /etc/cronify.yaml``
 
 .. code-block:: yaml
 
@@ -44,7 +44,7 @@ $ cat /etc/cronify.yaml
 	              args:
 	                - $filename
 	                - YYYYMMDD
-	              cmd: echo``
+	              cmd: echo
 
 ::
 
