@@ -8,10 +8,24 @@
               args:
                 - $filename
                 - YYYYMMDD
-              cmd: process
+	      # Where 'process.sh' is a globally available command line script
+              cmd: process.sh
 
 /tmp/testdir2 :
     name : Other log watcher
+    # Optional file timezone
+    # If given file datestamp is converted to given timezone before datetime manipulation happens
+    # This needs to be set if the files you are watching are created with a timezone other than
+    # the server's local timezone _and_ you are using start_time and end_time in actions.
+    # If files are created with a different timezone and file_tz is not set,
+    # the wrong time will be used to check if file is between start_time and end_time for an action
+    # and the action will be triggered/not-triggered incorrectly as a result.
+    file_tz : US/Eastern
+    # Optional local timezone. Defaults to system local timezone if not set
+    # This option allows for overriding the system's local timezone on a per watcher basis
+    # and allows for example triggering of actions using a timezone other than the system
+    # default
+    local_tz : GMT
     recurse : true
     filemasks :
       other_log_YYYYMMDD.* :
@@ -27,4 +41,5 @@
             args:
               - $filename
               - YYYYMMDD
-            cmd: process
+	    # Where 'process.sh' is a globally available command line script
+            cmd: process.sh
