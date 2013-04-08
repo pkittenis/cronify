@@ -9,7 +9,7 @@ import logging
 import sys
 import threadpool
 import subprocess
-# import pytz
+import pytz
 import datetime
 import re
 
@@ -53,7 +53,10 @@ class EventHandler(pyinotify.ProcessEvent):
     # 'somefile.txt' : [ { 'action1' : { 'cmd' : 'echo', <..> } }, ],
     # 'otherfile.txt' : [ { 'action1' : { 'cmd' : 'cat', <..> } }, ],
     # }
-    def __init__(self, filemask_actions, threadpool, callback_func = None):
+    def __init__(self, filemask_actions, threadpool,
+                 callback_func = None,
+                 file_tz = None,
+                 local_tz = None):
         pyinotify.ProcessEvent.__init__(self)
         self.filemask_actions, self.threadpool = filemask_actions, threadpool
         self.callback_func = callback_func
@@ -61,6 +64,9 @@ class EventHandler(pyinotify.ProcessEvent):
             new_filemask = self._parse_filemask(filemask)
             self.filemask_actions[new_filemask] = self.filemask_actions[filemask]
             del self.filemask_actions[filemask]
+        self.file_tz = file_tz
+        self.local_tz = local_tz
+        logger.debug("Got local tz %s" % (self.local_tz,))
 
     def process_IN_CLOSE_WRITE(self, event):
         """IN_CLOSE_WRITE event handler
@@ -153,7 +159,18 @@ class EventHandler(pyinotify.ProcessEvent):
         logger.debug("Made expanded action arguments %s" % (action_args,))
         action_args.insert(0, action_data['cmd'])
         if action_metadata and 'start_time' in action_metadata and 'end_time' in action_metadata:
-            now = datetime.datetime.now()
+            utc = datetime.datetime.utcnow()
+            now = datetime.datetime(utc.year, utc.month, utc.day, utc.hour, utc.minute, utc.second,
+                                    tzinfo = pytz.utc)
+            logger.debug("Local tz is %s" % (self.local_tz,))
+            if self.local_tz:
+                now = self.local_tz.normalize(now.astimezone(self.local_tz))
+                # Convert tz-aware datetime into naive datetime or datetime arithmetic will fail
+                now = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute, now.second)
+                logger.debug("Have local_tz configuration, converted 'now' time to %s" %
+                             (now,))
+            else:
+                logger.debug("No local_tz config, using system timezone")
             start_time = datetime.datetime(file_metadata['datestamp'].year, file_metadata['datestamp'].month,
                                            file_metadata['datestamp'].day, action_metadata['start_time'].hour,
                                            action_metadata['start_time'].minute, action_metadata['start_time'].second)
@@ -214,8 +231,9 @@ class Watcher(object):
             logger.critical("Missing required configuration, exiting")
             sys.exit(1)
         self.watch_data = watch_data
+        [self._check_timezone_info(self.watch_data[watch]) for watch in self.watch_data]
         self.threadpool = threadpool.ThreadPool(num_workers = 10)
-        self.start_watchers(watch_data)
+        self.start_watchers(self.watch_data)
 
     def _check_data_fields(self, data, req_fields):
         """Check for required data fields
@@ -245,9 +263,12 @@ class Watcher(object):
                 sys.exit(1)
             recurse = watch_data[watcher]['recurse'] if 'recurse' in watch_data[watcher] else False
             watch_manager = pyinotify.WatchManager()
+            local_tz = watch_data[watcher]['local_tz'] if 'local_tz' in watch_data[watcher] else None
             notifier = pyinotify.ThreadedNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'].copy(),
                                                                               self.threadpool,
-                                                                              callback_func = self.callback_func))
+                                                                              callback_func = self.callback_func,
+                                                                              local_tz = local_tz
+                                                                              ))
             notifier.daemon = True
             notifier.start()
             watch_manager.add_watch(watch_dir, _MASKS, rec = recurse, auto_add = True)
@@ -257,6 +278,24 @@ class Watcher(object):
                          recurse,))
             self.notifiers.append(notifier)
             self.watch_managers.append(watch_manager)
+
+    def _check_timezone_info(self, watch_data):
+        """Check if we have timezone configuration in watch data, parse if needed"""
+        if not 'file_tz' in watch_data and not 'local_tz' in watch_data:
+            return
+        for tz_key in ['file_tz', 'local_tz']:
+            if tz_key in watch_data:
+                try:
+                    watch_data[tz_key] = pytz.timezone(watch_data[tz_key])
+                except pytz.UnknownTimeZoneError:
+                    logger.error("Invalid timezone %s given as '%s' configuration, cannot continue" % (
+                        watch_data[tz_key], tz_key, ))
+                    sys.exit(1)
+                else:
+                    logger.debug("Got timezone configuration for %s = %s" % (tz_key, watch_data[tz_key],))
+        if not 'local_tz' in watch_data:
+            logger.debug("Got no local_tz, using system default %s" % (time.tzname[0],))
+            watch_data['local_tz'] = pytz.timezone(time.tzname[0])
 
     def _check_dir(self, dirpath):
         """Make absolute path, check is directory"""
@@ -290,6 +329,7 @@ def test():
                                 'args': ['$filename', 'YYYYMMDD']}},]
                     }, } },
                   '/tmp/otherdir' : {'name': 'Other file',
+                                     'local_tz' : 'US/Eastern',
                                      'filemasks': {
                 'otherfile.*' : {
                     'actions': [
