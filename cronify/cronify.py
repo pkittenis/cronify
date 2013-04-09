@@ -171,16 +171,21 @@ class EventHandler(pyinotify.ProcessEvent):
                              (now,))
             else:
                 logger.debug("No local_tz config, using system timezone")
+                # now is UTC, need naive datetime
+                now = datetime.datetime.now()
             start_time = datetime.datetime(file_metadata['datestamp'].year, file_metadata['datestamp'].month,
                                            file_metadata['datestamp'].day, action_metadata['start_time'].hour,
                                            action_metadata['start_time'].minute, action_metadata['start_time'].second)
+            end_time = datetime.datetime(file_metadata['datestamp'].year, file_metadata['datestamp'].month,
+                                         file_metadata['datestamp'].day, action_metadata['end_time'].hour,
+                                         action_metadata['end_time'].minute, action_metadata['end_time'].second)
             if now < start_time:
                 logger.info("Action start time %s is in the future, waiting for %s hh:mm:SS" %
                             (start_time, start_time - now,))
                 time.sleep((start_time - now).seconds)
-            elif now > start_time:
-                logger.info("Action start time %s is in the past, not triggering action" %
-                            (start_time,))
+            elif now > start_time and now > end_time:
+                logger.info("Action start time %s is in the past and end time %s has passed, not triggering action" %
+                            (start_time, end_time))
                 return
         if self.callback_func:
             self.callback_func(event)
@@ -293,9 +298,6 @@ class Watcher(object):
                     sys.exit(1)
                 else:
                     logger.debug("Got timezone configuration for %s = %s" % (tz_key, watch_data[tz_key],))
-        if not 'local_tz' in watch_data:
-            logger.debug("Got no local_tz, using system default %s" % (time.tzname[0],))
-            watch_data['local_tz'] = pytz.timezone(time.tzname[0])
 
     def _check_dir(self, dirpath):
         """Make absolute path, check is directory"""
