@@ -8,6 +8,7 @@ import os
 import shutil
 import Queue
 import datetime
+import pytz
 
 class CronifyTestCase(unittest.TestCase):
 
@@ -120,6 +121,66 @@ class CronifyTestCase(unittest.TestCase):
                              msg = "Got result from action where action has start time in future")
         finally:
             watcher.cleanup()
+
+    def test_action_start_time_in_past(self):
+        """Test that an action with start_time in the past is triggered"""
+        test_filemask = 'testfilemask.txt'
+        end_time = '23:59:59'
+        test_action = { 'Echo filename and file datestamp' : {
+            'cmd': 'echo',
+            'start_time' : (datetime.datetime.now() - datetime.timedelta(minutes = 30)).strftime("%H:%M:%S"),
+            'end_time' : end_time,
+            'args': ['$filename', 'YYYYMMDD'] } }
+        watch_data = {
+            self.setup_test_dir : {
+                'name': 'Test watch',
+                'filemasks': {
+                    test_filemask : {
+                        'actions': [test_action,],
+                        }
+                    }}}
+        watcher = Watcher(watch_data, callback_func = self.callback_func)
+        self._make_test_file(test_filemask)
+        self.assertEqual(test_filemask, self.q.get(timeout = 1),
+                         msg = "Expected action with start time in the past and end_time %s to be triggered immediately" %
+                         (end_time,))
+
+    def test_modified_local_tz(self):
+        """Test running action with changed local timezone"""
+        # Make local_tz different from TZ we use for time 'now'
+        # Action is scheduled for US/Pacific now + 30 minutes which is prior to now at US/Eastern
+        # so action should be triggered.
+        local_tz = "US/Eastern"
+        my_tz = "US/Pacific"
+        my_tz = pytz.timezone(my_tz)
+        now = datetime.datetime.utcnow()
+        now = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute, now.second,
+                                tzinfo = pytz.utc)
+        now = my_tz.normalize(now.astimezone(my_tz))
+        local_tz_obj = pytz.timezone(local_tz)
+        local_tz_now = local_tz_obj.normalize(now.astimezone(local_tz_obj))
+        now = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute, now.second)
+        test_filemask = 'testfilemask.txt'
+        test_action = { 'Echo filename and file datestamp' : {
+            'cmd': 'echo',
+            'start_time' : (now + datetime.timedelta(minutes = 30)).strftime("%H:%M:%S"),
+            'end_time' : '23:59:59',
+            'args': ['$filename', 'YYYYMMDD'] } }
+        watch_data = {
+            self.setup_test_dir : {
+                'name': 'Test watch',
+                'local_tz' : local_tz,
+                'filemasks': {
+                    test_filemask : {
+                        'actions': [test_action,],
+                        }
+                    }}}
+        watcher = Watcher(watch_data, callback_func = self.callback_func)
+        self._make_test_file(test_filemask)
+        self.assertEqual(test_filemask, self.q.get(timeout = 1),
+                         msg = "Expected action to be executed with since start_time of %s is prior to watcher's local time of %s" %
+                         ((now + datetime.timedelta(minutes = 30)).strftime("%H:%M:%S"),
+                          local_tz_now.strftime("%H:%M:%S"),))
 
 if __name__ == '__main__':
     unittest.main()
