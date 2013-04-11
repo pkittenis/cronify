@@ -1,0 +1,3 @@
+[submodule "cronify/pythonlibraries"]
+	path = cronify/pythonlibraries
+	url = git@github.com:pkittenis/pythonlibraries.git
