@@ -5,7 +5,7 @@ with open("README.rst") as file:
     long_desc = file.read()
 
 setup(name = 'cronify',
-      version = '0.1',
+      version = '0.12',
       description = "Event based cron-like utility using the linux kernels' inotify API",
       long_description = long_desc,
       author = 'Panos Kittenis',
