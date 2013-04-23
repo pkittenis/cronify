@@ -116,6 +116,6 @@ Known limitations
 
   In other words if you were planning on watching for a file that is created by an NFS *client*, this is currently not possible.
 
-.. image:: https://cruel-carlota.pagodabox.com/7824b645a84683301513e7edc5bd1327
+.. image:: https://cruel-carlota.pagodabox.com/f1d73b292eef6e399205a85d1bc7657b
    :alt: githalytics.com
    :target: http://githalytics.com/pkittenis/cronify
