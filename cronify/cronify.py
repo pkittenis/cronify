@@ -12,6 +12,7 @@ import subprocess
 import pytz
 import datetime
 import re
+from common import read_cfg
 
 _MASKS = pyinotify.IN_CLOSE_WRITE | pyinotify.IN_MOVED_FROM
 
@@ -218,27 +219,42 @@ class Watcher(object):
         """
         self.watch_managers, self.notifiers = [], []
         self.callback_func = callback_func
-        if not self._check_data_fields(watch_data, self._req_data_fields):
-            sys.exit(1)
-        try:
-            [sys.exit(1) for watch in watch_data
-             if not self._check_data_fields(watch_data[watch]['filemasks'], self._req_filemask_fields)]
-            [sys.exit(1) for watch in watch_data for filemask in watch_data[watch]['filemasks']
-             if not watch_data[watch]['filemasks'][filemask]['actions']]
-            [sys.exit(1) for watch in watch_data for filemask in watch_data[watch]['filemasks']
-             for action in watch_data[watch]['filemasks'][filemask]['actions']
-             if not self._check_data_fields(action, self._req_action_fields)]
-            [sys.exit(1) for watch in watch_data for filemask in watch_data[watch]['filemasks']
-             for action in watch_data[watch]['filemasks'][filemask]['actions']
-             if (self._req_time_fields[0] in action.values()[0] or self._req_time_fields[1] in action.values()[0])
-             and not self._check_data_fields(action, self._req_time_fields)]
-        except TypeError:
-            logger.critical("Missing required configuration, exiting")
+        if not self.check_watch_data(watch_data):
+            logger.critical("Bad configuration, cannot start")
             sys.exit(1)
         self.watch_data = watch_data
         [self._check_timezone_info(self.watch_data[watch]) for watch in self.watch_data]
         self.threadpool = threadpool.ThreadPool(num_workers = 10)
         self.start_watchers(self.watch_data)
+
+    def check_watch_data(self, watch_data):
+        """Check that watch_data is valid
+        :rtype: bool
+        :return: True if watch_data is valid, False otherwise"""
+        if not self._check_data_fields(watch_data, self._req_data_fields):
+            return False
+        try:
+            if False in [False for watch in watch_data
+                         if not self._check_data_fields(watch_data[watch]['filemasks'],
+                                                        self._req_filemask_fields)]:
+                return False
+            if False in [False for watch in watch_data for filemask in watch_data[watch]['filemasks']
+             if not watch_data[watch]['filemasks'][filemask]['actions']]:
+                return False
+            if False in [False for watch in watch_data for filemask in watch_data[watch]['filemasks']
+                         for action in watch_data[watch]['filemasks'][filemask]['actions']
+                         if not self._check_data_fields(action, self._req_action_fields)]:
+                return False
+            if False in [False for watch in watch_data for filemask in watch_data[watch]['filemasks']
+                         for action in watch_data[watch]['filemasks'][filemask]['actions']
+                         if (self._req_time_fields[0] in action.values()[0]
+                             or self._req_time_fields[1] in action.values()[0])
+                         and not self._check_data_fields(action, self._req_time_fields)]:
+                return False
+        except TypeError:
+            logger.critical("Missing required configuration, exiting")
+            return False
+        return True
 
     def _check_data_fields(self, data, req_fields):
         """Check for required data fields
@@ -283,6 +299,17 @@ class Watcher(object):
                          recurse,))
             self.notifiers.append(notifier)
             self.watch_managers.append(watch_manager)
+
+    def update_watchers(self):
+        """Try and update watchers with new watch_data from cfg file"""
+        watch_data = read_cfg()
+        if not watch_data:
+            logger.error("Could not read configuration file or invalid configuration in file")
+            return
+        if not self.check_watch_data(watch_data):
+            logger.error("Invalid configuration found, cannot continue with watcher reload")
+            return
+
 
     def _check_timezone_info(self, watch_data):
         """Check if we have timezone configuration in watch data, parse if needed"""
