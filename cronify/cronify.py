@@ -310,7 +310,6 @@ class Watcher(object):
             logger.error("Invalid configuration found, cannot continue with watcher reload")
             return
 
-
     def _check_timezone_info(self, watch_data):
         """Check if we have timezone configuration in watch data, parse if needed"""
         if not 'file_tz' in watch_data and not 'local_tz' in watch_data:

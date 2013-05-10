@@ -6,5 +6,7 @@ def read_cfg():
     """Read cfg file, return configuration as dictionary
     :rtype: dict
     :return: watch_data dictionary"""
-    with open(CFG_FILE, 'r') as cfg_fileh:
-        return pyaml.yaml.load(cfg_fileh)
+    cfg_fileh = open(CFG_FILE, 'r')
+    data = pyaml.yaml.load(cfg_fileh)
+    cfg_fileh.close()
+    return data
