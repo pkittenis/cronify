@@ -1,4 +1,4 @@
 pyinotify
-pyaml
+PyYAML
 pytz
 python-daemon
