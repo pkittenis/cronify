@@ -9,6 +9,7 @@ import shutil
 import Queue
 import datetime
 import pytz
+import yaml
 
 class CronifyTestCase(unittest.TestCase):
 
@@ -181,6 +182,25 @@ class CronifyTestCase(unittest.TestCase):
                          msg = "Expected action to be executed with since start_time of %s is prior to watcher's local time of %s" %
                          ((now + datetime.timedelta(minutes = 30)).strftime("%H:%M:%S"),
                           local_tz_now.strftime("%H:%M:%S"),))
+
+    def test_yaml(self):
+        """Test loading yaml file"""
+        yaml_data = """
+/tmp/testdir :
+    name : Access log watcher
+    recurse : false
+    filemasks :
+      somefile.* :
+        actions :
+          - processFile :
+              args:
+                - $filename
+                - YYYYMMDD
+              cmd: echo
+              """
+        expected = {'/tmp/testdir': {'recurse': False, 'filemasks': {'somefile.*': {'actions': [{'processFile': {'cmd': 'echo', 'args': ['$filename', 'YYYYMMDD']}}]}}, 'name': 'Access log watcher'}}
+        parsed_yaml = yaml.load(yaml_data)
+        self.assertEqual(parsed_yaml, expected, msg = "Parsed yaml does not match what we expected it to be")
 
 if __name__ == '__main__':
     unittest.main()

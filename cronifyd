@@ -3,7 +3,7 @@
 import os
 import sys
 # import signal
-import pyaml
+import yaml
 import time
 import logging
 import logging.handlers
@@ -27,7 +27,7 @@ except OSError, e:
 def start_watcher():
     """Read config file, start watcher and return Watcher object"""
     cfg_fileh = open(CFG_FILE, 'r')
-    data = pyaml.yaml.load(cfg_fileh)
+    data = yaml.load(cfg_fileh)
     cfg_fileh.close()
     syslog.syslog("Cronify daemon starting..")
     return cronify.Watcher(data)
