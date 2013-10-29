@@ -12,7 +12,7 @@ import subprocess
 import pytz
 import datetime
 import re
-from common import read_cfg
+from common import read_cfg, CFG_FILE
 
 _MASKS = pyinotify.IN_CLOSE_WRITE | pyinotify.IN_MOVED_FROM
 
@@ -302,7 +302,7 @@ class Watcher(object):
 
     def update_watchers(self):
         """Try and update watchers with new watch_data from cfg file"""
-        watch_data = read_cfg()
+        watch_data = read_cfg(open(CFG_FILE, 'r'))
         if not watch_data:
             logger.error("Could not read configuration file or invalid configuration in file")
             return

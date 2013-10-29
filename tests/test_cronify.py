@@ -4,12 +4,14 @@
 
 import unittest
 from cronify import Watcher
+from cronify.common import read_cfg
 import os
 import shutil
 import Queue
 import datetime
 import pytz
 import yaml
+from cStringIO import StringIO
 
 class CronifyTestCase(unittest.TestCase):
 
@@ -200,6 +202,25 @@ class CronifyTestCase(unittest.TestCase):
               """
         expected = {'/tmp/testdir': {'recurse': False, 'filemasks': {'somefile.*': {'actions': [{'processFile': {'cmd': 'echo', 'args': ['$filename', 'YYYYMMDD']}}]}}, 'name': 'Access log watcher'}}
         parsed_yaml = yaml.load(yaml_data)
+        self.assertEqual(parsed_yaml, expected, msg = "Parsed yaml does not match what we expected it to be")
+
+    def test_common_read_yaml_file(self):
+        """Test read_cfg in common"""
+        yaml_data_file = StringIO("""
+/tmp/testdir :
+    name : Access log watcher
+    recurse : false
+    filemasks :
+      somefile.* :
+        actions :
+          - processFile :
+              args:
+                - $filename
+                - YYYYMMDD
+              cmd: echo
+              """)
+        expected = {'/tmp/testdir': {'recurse': False, 'filemasks': {'somefile.*': {'actions': [{'processFile': {'cmd': 'echo', 'args': ['$filename', 'YYYYMMDD']}}]}}, 'name': 'Access log watcher'}}
+        parsed_yaml = read_cfg(yaml_data_file)
         self.assertEqual(parsed_yaml, expected, msg = "Parsed yaml does not match what we expected it to be")
 
 if __name__ == '__main__':
