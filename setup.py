@@ -12,7 +12,7 @@ setup(name = 'cronify',
       author_email = 'pkittenis@gmail.com',
       url = "https://github.com/pkittenis/cronify",
       packages = find_packages('.'),
-      install_requires = ['pyinotify', 'pyaml', 'python-daemon', 'pytz'],
+      install_requires = ['pyinotify', 'PyYAML', 'python-daemon', 'pytz'],
       classifiers = [
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Intended Audience :: Developers',
