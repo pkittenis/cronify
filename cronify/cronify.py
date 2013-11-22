@@ -12,6 +12,7 @@ import subprocess
 import pytz
 import datetime
 import re
+import signal
 from common import read_cfg, CFG_FILE
 
 _MASKS = pyinotify.IN_CLOSE_WRITE | pyinotify.IN_MOVED_FROM
@@ -226,6 +227,11 @@ class Watcher(object):
         [self._check_timezone_info(self.watch_data[watch]) for watch in self.watch_data]
         self.threadpool = threadpool.ThreadPool(num_workers = 10)
         self.start_watchers(self.watch_data)
+        signal.signal(signal.SIGUSR1, self.reload_signal_handler)
+
+    def reload_signal_handler(self, signalnum, frame):
+        logger.info("Reloading watchers from configuration file %s" % (CFG_FILE,))
+        self.update_watchers()
 
     def check_watch_data(self, watch_data):
         """Check that watch_data is valid
@@ -300,15 +306,24 @@ class Watcher(object):
             self.notifiers.append(notifier)
             self.watch_managers.append(watch_manager)
 
-    def update_watchers(self):
+    def update_watchers(self, watch_data = None):
         """Try and update watchers with new watch_data from cfg file"""
-        watch_data = read_cfg(open(CFG_FILE, 'r'))
+        if not watch_data:
+            watch_data = read_cfg(open(CFG_FILE, 'r'))
         if not watch_data:
             logger.error("Could not read configuration file or invalid configuration in file")
             return
         if not self.check_watch_data(watch_data):
             logger.error("Invalid configuration found, cannot continue with watcher reload")
             return
+        for watcher in watch_data:
+            watch_dir = self._check_dir(watcher)
+            if not watch_dir:
+                logger.critical("Desired directory to watch %s does not exist or is not a directory, cannot continue with watcher reload." % (watcher,))
+        self.cleanup()
+        self.start_watchers(watch_data)
+        self.watch_data = watch_data
+        logger.info("Watchers finished reloading..")
 
     def _check_timezone_info(self, watch_data):
         """Check if we have timezone configuration in watch data, parse if needed"""
@@ -337,6 +352,7 @@ class Watcher(object):
         logger.info("Got cleanup signal, shutting down notifiers..")
         [wm.rm_watch(wm.watches.keys()) for wm in self.watch_managers]
         [notifier.stop() for notifier in self.notifiers]
+        self.watch_managers, self.notifiers = [], []
 
 def callback_func(event):
     """Test function for callback_func optional parameter of Watcher class"""

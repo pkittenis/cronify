@@ -223,5 +223,35 @@ class CronifyTestCase(unittest.TestCase):
         parsed_yaml = read_cfg(yaml_data_file)
         self.assertEqual(parsed_yaml, expected, msg = "Parsed yaml does not match what we expected it to be")
 
+    def test_reload(self):
+        test_filemask = 'testfilemask.txt'
+        watch_data = {
+            self.setup_test_dir : {
+                'name': 'Test watch',
+                'filemasks': {
+                    test_filemask : {
+                        'actions': [self.echo_test_action,],
+                        }
+                    }}}
+        watcher = Watcher(watch_data, callback_func = self.callback_func)
+        new_test_filemask = 'testy.txt'
+        new_watch_data = {
+            self.setup_test_dir : {
+                'name': 'New watch',
+                'filemasks': {
+                    new_test_filemask : {
+                        'actions': [self.echo_test_action,],
+                        }
+                    }}}
+        watcher.update_watchers(new_watch_data)
+        self.assertEqual(new_watch_data, watcher.watch_data,
+                         msg = "Expected watcher watch data to be the new data we reloaded")
+        self._make_test_file(new_test_filemask)
+        try:
+            self.assertEqual(new_test_filemask, self.q.get(timeout = 30),
+                             msg = "Expected action to be triggered for new filemask %s" % (new_test_filemask,))
+        finally:
+            watcher.cleanup()
+
 if __name__ == '__main__':
     unittest.main()
