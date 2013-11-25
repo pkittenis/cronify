@@ -248,7 +248,7 @@ class CronifyTestCase(unittest.TestCase):
                          msg = "Expected watcher watch data to be the new data we reloaded")
         self._make_test_file(new_test_filemask)
         try:
-            self.assertEqual(new_test_filemask, self.q.get(timeout = 30),
+            self.assertEqual(new_test_filemask, self.q.get(timeout = 1),
                              msg = "Expected action to be triggered for new filemask %s" % (new_test_filemask,))
         finally:
             watcher.cleanup()

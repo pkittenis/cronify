@@ -13,6 +13,8 @@ import pytz
 import datetime
 import re
 import signal
+import asyncore
+import threading
 from common import read_cfg, CFG_FILE
 
 _MASKS = pyinotify.IN_CLOSE_WRITE | pyinotify.IN_MOVED_FROM
@@ -228,6 +230,12 @@ class Watcher(object):
         self.thread_pool = threadpool.ThreadPool(num_workers = 10)
         self.start_watchers(self.watch_data)
         signal.signal(signal.SIGUSR1, self.reload_signal_handler)
+        self.asyncore_thread = None
+
+    def _asyncore_target_thread(self):
+        """Target function for per watcher asyncore loop thread"""
+        while True:
+            asyncore.loop()
 
     def reload_signal_handler(self, signalnum, frame):
         """Signal handler for reloading configuration file and watchers"""
@@ -292,13 +300,11 @@ class Watcher(object):
             recurse = watch_data[watcher]['recurse'] if 'recurse' in watch_data[watcher] else False
             watch_manager = pyinotify.WatchManager()
             local_tz = watch_data[watcher]['local_tz'] if 'local_tz' in watch_data[watcher] else None
-            notifier = pyinotify.ThreadedNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'].copy(),
-                                                                              self.thread_pool,
-                                                                              callback_func = self.callback_func,
-                                                                              local_tz = local_tz
-                                                                              ))
-            notifier.daemon = True
-            notifier.start()
+            notifier = pyinotify.AsyncNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'].copy(),
+                                                                           self.thread_pool,
+                                                                           callback_func = self.callback_func,
+                                                                           local_tz = local_tz
+                                                                           ))
             watch_manager.add_watch(watch_dir, _MASKS, rec = recurse, auto_add = True)
             logger.info("Started watching directory %s with filemasks and actions %s, recurse %s..",
                         watch_dir,
@@ -306,6 +312,9 @@ class Watcher(object):
                         recurse,)
             self.notifiers.append(notifier)
             self.watch_managers.append(watch_manager)
+        self.asyncore_thread = threading.Thread(target = self._asyncore_target_thread)
+        self.asyncore_thread.daemon = True
+        self.asyncore_thread.start()
 
     def update_watchers(self, watch_data = None):
         """Try and update watchers with new watch_data from cfg file"""
@@ -355,6 +364,7 @@ class Watcher(object):
         [wm.rm_watch(wm.watches.keys()) for wm in self.watch_managers]
         [notifier.stop() for notifier in self.notifiers]
         self.watch_managers, self.notifiers = [], []
+        del self.asyncore_thread
 
 def _callback_func(event):
     """Test function for callback_func optional parameter of Watcher class"""
