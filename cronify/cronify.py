@@ -55,12 +55,12 @@ class EventHandler(pyinotify.ProcessEvent):
     # 'somefile.txt' : [ { 'action1' : { 'cmd' : 'echo', <..> } }, ],
     # 'otherfile.txt' : [ { 'action1' : { 'cmd' : 'cat', <..> } }, ],
     # }
-    def __init__(self, filemask_actions, threadpool,
+    def __init__(self, filemask_actions, thread_pool,
                  callback_func = None,
                  file_tz = None,
                  local_tz = None):
         pyinotify.ProcessEvent.__init__(self)
-        self.filemask_actions, self.threadpool = filemask_actions, threadpool
+        self.filemask_actions, self.thread_pool = filemask_actions, thread_pool
         self.callback_func = callback_func
         for filemask in self.filemask_actions.copy():
             new_filemask = self._parse_filemask(filemask)
@@ -68,7 +68,7 @@ class EventHandler(pyinotify.ProcessEvent):
             del self.filemask_actions[filemask]
         self.file_tz = file_tz
         self.local_tz = local_tz
-        logger.debug("Got local tz %s" % (self.local_tz,))
+        logger.debug("Got local tz %s", (self.local_tz,))
 
     def process_IN_CLOSE_WRITE(self, event):
         """IN_CLOSE_WRITE event handler
@@ -83,10 +83,10 @@ class EventHandler(pyinotify.ProcessEvent):
         """Check triggered event against filemask, do actions if filemask is accepted"""
         for filemask in self.filemask_actions:
             if not filemask.match(event.name):
-                logger.debug("Filename %s did not match filemask pattern %s" % (event.name, filemask.pattern,))
+                logger.debug("Filename %s did not match filemask pattern %s", event.name, filemask.pattern,)
                 continue
-            logger.debug("Matched filename %s with filemask %s from event %s" % (event.name, filemask.pattern, event.maskname,))
-            self.threadpool.add_task_to_queue(self.do_actions, event, self.filemask_actions[filemask]['actions'])
+            logger.debug("Matched filename %s with filemask %s from event %s", event.name, filemask.pattern, event.maskname,)
+            self.thread_pool.add_task_to_queue(self.do_actions, event, self.filemask_actions[filemask]['actions'])
 
     def _parse_action_args(self, event, action_args):
         """Parse action_args, return args with expanded keywords and file metadata
@@ -102,8 +102,8 @@ class EventHandler(pyinotify.ProcessEvent):
                 if not file_datestamp:
                     logger.debug("Could not parse datestamp from filename, falling back to file's modified time")
                     file_datestamp = datetime.date.fromtimestamp(os.stat(event.pathname).st_mtime)
-                logger.debug("Parsed datestamp %s for file %s" % (file_datestamp.strftime(self._datestamp_keyword_fmt[1]),
-                                                                  event.pathname,))
+                logger.debug("Parsed datestamp %s for file %s", file_datestamp.strftime(self._datestamp_keyword_fmt[1]),
+                            event.pathname,)
                 action_args[i] = file_datestamp.strftime(self._datestamp_keyword_fmt[1])
                 file_metadata['datestamp'] = file_datestamp
         return action_args, file_metadata
@@ -114,10 +114,10 @@ class EventHandler(pyinotify.ProcessEvent):
         for key in action:
             if key == 'start_time':
                 metadata['start_time'] = self._parse_isoformat_time(action[key])
-                logger.debug("Parsed action start time %s" % (metadata['start_time'],))
+                logger.debug("Parsed action start time %s", (metadata['start_time'],))
             elif key == 'end_time':
                 metadata['end_time'] = self._parse_isoformat_time(action[key])
-                logger.debug("Parsed action end time %s" % (metadata['end_time'],))
+                logger.debug("Parsed action end time %s", (metadata['end_time'],))
         return metadata
 
     def _parse_filemask(self, filemask):
@@ -145,12 +145,12 @@ class EventHandler(pyinotify.ProcessEvent):
         except ValueError:
             return
         else:
-            logger.debug("Parsed file datestamp from date in filename - %s from %s" % (file_datestamp, filename,))
+            logger.debug("Parsed file datestamp from date in filename - %s from %s", file_datestamp, filename,)
         return datetime.date(file_datestamp.year, file_datestamp.month, file_datestamp.day)
 
     def do_actions(self, event, actions):
         """Perform actions"""
-        logger.debug("Starting actions %s" % (actions,))
+        logger.debug("Starting actions %s", (actions,))
         [self._do_action(event, action, action_data) for action in actions
          for action_data in action.itervalues()]
 
@@ -158,18 +158,18 @@ class EventHandler(pyinotify.ProcessEvent):
         """Perform a single action"""
         action_metadata = self._parse_action_metadata(action_data)
         action_args, file_metadata = self._parse_action_args(event, action_data['args'][:])
-        logger.debug("Made expanded action arguments %s" % (action_args,))
+        logger.debug("Made expanded action arguments %s", (action_args,))
         action_args.insert(0, action_data['cmd'])
         if action_metadata and 'start_time' in action_metadata and 'end_time' in action_metadata:
             utc = datetime.datetime.utcnow()
             now = datetime.datetime(utc.year, utc.month, utc.day, utc.hour, utc.minute, utc.second,
                                     tzinfo = pytz.utc)
-            logger.debug("Local tz is %s" % (self.local_tz,))
+            logger.debug("Local tz is %s", (self.local_tz,))
             if self.local_tz:
                 now = self.local_tz.normalize(now.astimezone(self.local_tz))
                 # Convert tz-aware datetime into naive datetime or datetime arithmetic will fail
                 now = datetime.datetime(now.year, now.month, now.day, now.hour, now.minute, now.second)
-                logger.debug("Have local_tz configuration, converted 'now' time to %s" %
+                logger.debug("Have local_tz configuration, converted 'now' time to %s",
                              (now,))
             else:
                 logger.debug("No local_tz config, using system timezone")
@@ -182,20 +182,20 @@ class EventHandler(pyinotify.ProcessEvent):
                                          file_metadata['datestamp'].day, action_metadata['end_time'].hour,
                                          action_metadata['end_time'].minute, action_metadata['end_time'].second)
             if now < start_time:
-                logger.info("Action start time %s is in the future, waiting for %s hh:mm:SS" %
-                            (start_time, start_time - now,))
+                logger.info("Action start time %s is in the future, waiting for %s hh:mm:SS",
+                            start_time, start_time - now,)
                 time.sleep((start_time - now).seconds)
             elif now > start_time and now > end_time:
-                logger.info("Action start time %s is in the past and end time %s has passed, not triggering action" %
-                            (start_time, end_time))
+                logger.info("Action start time %s is in the past and end time %s has passed, not triggering action",
+                            start_time, end_time)
                 return
         if self.callback_func:
             self.callback_func(event)
         returncode, stdout, stderr = run_script(action_args)
-        logger.info("Got result from action %s - %s" % (action_data, stdout,))
+        logger.info("Got result from action %s - %s", action_data, stdout,)
         if returncode:
-            logger.error("Action %s failed with exit code %s, stderr %s" %
-                         (action, returncode, stderr,))
+            logger.error("Action %s failed with exit code %s, stderr %s",
+                         action, returncode, stderr,)
 
 class Watcher(object):
 
@@ -225,12 +225,13 @@ class Watcher(object):
             sys.exit(1)
         self.watch_data = watch_data
         [self._check_timezone_info(self.watch_data[watch]) for watch in self.watch_data]
-        self.threadpool = threadpool.ThreadPool(num_workers = 10)
+        self.thread_pool = threadpool.ThreadPool(num_workers = 10)
         self.start_watchers(self.watch_data)
         signal.signal(signal.SIGUSR1, self.reload_signal_handler)
 
     def reload_signal_handler(self, signalnum, frame):
-        logger.info("Reloading watchers from configuration file %s" % (CFG_FILE,))
+        """Signal handler for reloading configuration file and watchers"""
+        logger.info("Reloading watchers from configuration file %s", (CFG_FILE,))
         self.update_watchers()
 
     def check_watch_data(self, watch_data):
@@ -272,12 +273,12 @@ class Watcher(object):
         :returns: False if any required fields are missing
         :returns: True if all required fields are present"""
         if not data:
-            logger.critical("Configuration data for %s is empty, cannot continue" % (req_fields,))
+            logger.critical("Configuration data for %s is empty, cannot continue", (req_fields,))
             return False
         for _key in data:
             if not [True for field in req_fields if field in data[_key]] == [True for field in req_fields]:
-                logger.critical("Configuration data for %s is missing required fields from %s. Data is %s" %
-                                (_key, req_fields, data[_key],))
+                logger.critical("Configuration data for %s is missing required fields from %s. Data is %s",
+                                _key, req_fields, data[_key],)
                 return False
         return True
 
@@ -286,23 +287,23 @@ class Watcher(object):
         for watcher in watch_data:
             watch_dir = self._check_dir(watcher)
             if not watch_dir:
-                logger.critical("Desired directory to watch %s does not exist or is not a directory. Exiting." % (watcher,))
+                logger.critical("Desired directory to watch %s does not exist or is not a directory. Exiting.", (watcher,))
                 sys.exit(1)
             recurse = watch_data[watcher]['recurse'] if 'recurse' in watch_data[watcher] else False
             watch_manager = pyinotify.WatchManager()
             local_tz = watch_data[watcher]['local_tz'] if 'local_tz' in watch_data[watcher] else None
             notifier = pyinotify.ThreadedNotifier(watch_manager, EventHandler(watch_data[watcher]['filemasks'].copy(),
-                                                                              self.threadpool,
+                                                                              self.thread_pool,
                                                                               callback_func = self.callback_func,
                                                                               local_tz = local_tz
                                                                               ))
             notifier.daemon = True
             notifier.start()
             watch_manager.add_watch(watch_dir, _MASKS, rec = recurse, auto_add = True)
-            logger.info("Started watching directory %s with filemasks and actions %s, recurse %s.." %
-                        (watch_dir,
-                         watch_data[watcher]['filemasks'],
-                         recurse,))
+            logger.info("Started watching directory %s with filemasks and actions %s, recurse %s..",
+                        watch_dir,
+                        watch_data[watcher]['filemasks'],
+                        recurse,)
             self.notifiers.append(notifier)
             self.watch_managers.append(watch_manager)
 
@@ -319,7 +320,8 @@ class Watcher(object):
         for watcher in watch_data:
             watch_dir = self._check_dir(watcher)
             if not watch_dir:
-                logger.critical("Desired directory to watch %s does not exist or is not a directory, cannot continue with watcher reload." % (watcher,))
+                logger.critical("Desired directory to watch %s does not exist or is not a directory, cannot continue with watcher reload.",
+                                (watcher,))
         self.cleanup()
         self.start_watchers(watch_data)
         self.watch_data = watch_data
@@ -334,11 +336,11 @@ class Watcher(object):
                 try:
                     watch_data[tz_key] = pytz.timezone(watch_data[tz_key])
                 except pytz.UnknownTimeZoneError:
-                    logger.error("Invalid timezone %s given as '%s' configuration, cannot continue" % (
-                        watch_data[tz_key], tz_key, ))
+                    logger.error("Invalid timezone %s given as '%s' configuration, cannot continue",
+                                 watch_data[tz_key], tz_key,)
                     sys.exit(1)
                 else:
-                    logger.debug("Got timezone configuration for %s = %s" % (tz_key, watch_data[tz_key],))
+                    logger.debug("Got timezone configuration for %s = %s", tz_key, watch_data[tz_key],)
 
     def _check_dir(self, dirpath):
         """Make absolute path, check is directory"""
@@ -354,7 +356,7 @@ class Watcher(object):
         [notifier.stop() for notifier in self.notifiers]
         self.watch_managers, self.notifiers = [], []
 
-def callback_func(event):
+def _callback_func(event):
     """Test function for callback_func optional parameter of Watcher class"""
     print "Got event for %s" % (event.name,)
 
@@ -392,6 +394,7 @@ def test():
         try:
             time.sleep(5)
         except KeyboardInterrupt:
+            watcher.cleanup()
             sys.exit(0)
 
 if __name__ == "__main__":
