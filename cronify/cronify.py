@@ -15,9 +15,7 @@ import re
 import signal
 import asyncore
 import threading
-from common import read_cfg, CFG_FILE
-
-_MASKS = pyinotify.IN_CLOSE_WRITE | pyinotify.IN_MOVED_FROM
+from common import read_cfg, CFG_FILE, _MASKS
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +36,9 @@ def run_script(cmd_args):
     :param cmd_args: List of cmd and arguments to run, eg ['ls', '-l']
     :rtype: tuple
     :returns: returncode, stdout, stderr"""
-    p = subprocess.Popen(cmd_args, shell = False, stdout = subprocess.PIPE)
-    stdout, stderr = p.communicate()
-    return p.returncode, stdout, stderr
+    proc = subprocess.Popen(cmd_args, shell = False, stdout = subprocess.PIPE)
+    stdout, stderr = proc.communicate()
+    return proc.returncode, stdout, stderr
 
 class EventHandler(pyinotify.ProcessEvent):
 
@@ -54,8 +52,8 @@ class EventHandler(pyinotify.ProcessEvent):
     _datestamp_keyword_fmt = ( 'YYYYMMDD', '%Y%m%d' )
 
     # filemasks_actions = {
-    # 'somefile.txt' : [ { 'action1' : { 'cmd' : 'echo', <..> } }, ],
-    # 'otherfile.txt' : [ { 'action1' : { 'cmd' : 'cat', <..> } }, ],
+    # 'somefile.txt' : [ { 'action1' : { 'cmd' : 'echo', <..> }, 'actionN' : <..> } ],
+    # 'otherfile.txt' : [ { 'action1' : { 'cmd' : 'cat', <..> }, 'actionN' : <..> } ],
     # }
     def __init__(self, filemask_actions, thread_pool,
                  callback_func = None,
