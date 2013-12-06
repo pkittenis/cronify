@@ -1,3 +1,4 @@
+============
 cronify
 ============
 
@@ -12,9 +13,9 @@ The service's configuration is YAML based.
 .. image:: https://api.travis-ci.org/pkittenis/cronify.png?branch=master
 	:target: https://travis-ci.org/pkittenis/cronify
 
-************
+
 Installation
-************
+----------
 
 Requires a running Linux kernel >=2.6.13
 
@@ -26,9 +27,9 @@ Requires a running Linux kernel >=2.6.13
 	# Once a configuration file is in place, start the cronify daemon with the provided init script
 	$ sudo /etc/init.d/cronifyd start
 
-***********************
+
 Configuration Example
-***********************
+----------
 
 ``$ cat /etc/cronify.yaml``
 
@@ -55,9 +56,9 @@ Configuration Example
 	cronify.cronify - Thread-1 - 2013-03-26 17:40:40,485 - INFO - Got result from action {'cmd': 'echo', 'args': ['echo', '/tmp/testdir/somefile.txt', '20130326']} - /tmp/testdir/somefile.txt 20130326
 
 
-***********************************************************************
+
 More complex configuration with multiple watchers and delayed actions
-***********************************************************************
+---------------------
 
 See example.yaml in repository for complete list of accepted configuration
 
