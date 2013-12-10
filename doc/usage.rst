@@ -60,7 +60,7 @@ Single directory, single filemask with single action
 .. code-block:: yaml
 
 	/tmp/testdir :
-	    name : Access log watcher
+	    name : Fake watcher
 	    recurse : false
 	    filemasks :
 	      somefile.* :
@@ -72,3 +72,45 @@ Single directory, single filemask with single action
 	                - YYYYMMDD
 
 Any files matching the 'somefile.*' filemask in the /tmp/testdir directory will trigger the 'echo' command with two arguments, one the filename that triggered the command, the second the datestamp of the file.
+
+Multiple directories, multiple filemasks and actions
+----------------------------------------------------
+
+.. code-block:: yaml
+
+	/mnt/access_logs :
+	    name : Webserver access and error log watcher
+	    filemasks :
+	      access_log_YYYYMMDD.* :
+	        actions :
+	          - parseAccessLog :
+		      cmd: prase_access_log
+	              args:
+	                - $filename
+			- YYYYMMDD
+	      error_log_YYYYMMDD.* :
+	        actions :
+		  # Parse error log and send data to monitoring/graphing/alerting service
+		  - parseErrorLog :
+		    cmd: parse_error_log
+		    args:
+	                - $filename
+			- YYYYMMDD
+
+	/mnt/video_downloads:
+	    name : Video download watcher
+	    filemasks :
+	      *.mp4 :
+	        actions:
+		  # Re-encode to desired format
+		  - reEncode :
+		    cmd: reencode_mp4
+		    args :
+		      - $filename
+		  # Move to final location after re-encoding
+		  - move:
+		    cmd: mv
+		    args:
+		      - $filename
+		      - /mnt/media/completed_videos
+
