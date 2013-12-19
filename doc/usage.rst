@@ -146,6 +146,6 @@ Multiple directories, multiple filemasks and actions
 
 In the case of multiple actions, as in *`/mnt/video_downloads`* above, each action will be run sequentially one after the other in the order they are listed in the configuration. In the above example, the *`reEncode`* would be run first, then the *`move`* action.
 
-All actions *must* be valid executables. Shell commands, shell expansions, sequential execution of commands separated by ';' (a shell feature), anything that requires a shell, none of these will work. This is done purposefuly as it is a security risk [#first]_.
+All actions *must* be valid executables. Actions are *not* run inside a shell. Shell commands, shell expansions, sequential execution of commands separated by ';', pipelines, command substitution, input/output redirection, anything that requires a shell, none of these will work. This is done purposefuly as it is a security risk [#first]_.
 
 .. [#first] https://en.wikipedia.org/wiki/Code_injection#Shell_injection
