@@ -1,7 +1,7 @@
 language: python
 python:
-  - "2.6"
-  - "2.7"
+  - 2.6
+  - 2.7
 before_install:
   - git submodule update --init --recursive
 install:
@@ -10,3 +10,5 @@ script: nosetests
 notifications:
   email:
     on_failure: change
+pip: cache
+sudo: false

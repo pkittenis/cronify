@@ -36,29 +36,31 @@ def run_script(cmd_args):
     :param cmd_args: List of cmd and arguments to run, eg ['ls', '-l']
     :rtype: tuple
     :returns: returncode, stdout, stderr"""
-    proc = subprocess.Popen(cmd_args, shell = False, stdout = subprocess.PIPE)
+    proc = subprocess.Popen(cmd_args, shell=False, stdout=subprocess.PIPE)
     stdout, stderr = proc.communicate()
     return proc.returncode, stdout, stderr
 
 class EventHandler(pyinotify.ProcessEvent):
 
-    """pyinotify.ProcessEvent subclass, implements handlers for our actions
+    """pyinotify.ProcessEvent subclass, implements handlers for our actions.
+    
     Triggers actions on events that match our filemasks, queues/runs actions and
-    outputs action results"""
-
+    outputs action results
+    """
+    
     _filename_keyword = '$filename'
     _datestamp_re = r'\d{4}\d{2}\d{2}'
     _datestamp_rc = re.compile(_datestamp_re)
     _datestamp_keyword_fmt = ( 'YYYYMMDD', '%Y%m%d' )
-
+    
     # filemasks_actions = {
     # 'somefile.txt' : [ { 'action1' : { 'cmd' : 'echo', <..> }, 'actionN' : <..> } ],
     # 'otherfile.txt' : [ { 'action1' : { 'cmd' : 'cat', <..> }, 'actionN' : <..> } ],
     # }
     def __init__(self, filemask_actions, thread_pool,
-                 callback_func = None,
-                 file_tz = None,
-                 local_tz = None):
+                 callback_func=None,
+                 file_tz=None,
+                 local_tz=None):
         pyinotify.ProcessEvent.__init__(self)
         self.filemask_actions, self.thread_pool = filemask_actions, thread_pool
         self.callback_func = callback_func
@@ -69,16 +71,17 @@ class EventHandler(pyinotify.ProcessEvent):
         self.file_tz = file_tz
         self.local_tz = local_tz
         logger.debug("Got local tz %s", (self.local_tz,))
-
+    
     def process_IN_CLOSE_WRITE(self, event):
         """IN_CLOSE_WRITE event handler
         Just redirects to self.handle_event"""
         self.handle_event(event)
+    
     def process_IN_MOVED_FROM(self, event):
         """IN_MOVED_FROM event handler
         Just redirects to self.handle_event"""
         self.handle_event(event)
-
+    
     def handle_event(self, event):
         """Check triggered event against filemask, do actions if filemask is accepted"""
         for filemask in self.filemask_actions:
@@ -87,7 +90,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 continue
             logger.debug("Matched filename %s with filemask %s from event %s", event.name, filemask.pattern, event.maskname,)
             self.thread_pool.add_task_to_queue(self.do_actions, event, self.filemask_actions[filemask]['actions'])
-
+    
     def _parse_action_args(self, event, action_args):
         """Parse action_args, return args with expanded keywords and file metadata
         with data required to perform actions"""
@@ -197,6 +200,7 @@ class EventHandler(pyinotify.ProcessEvent):
             logger.error("Action %s failed with exit code %s, stderr %s",
                          action, returncode, stderr,)
 
+
 class Watcher(object):
 
     """Watcher class to watch a directory and trigger actions"""
@@ -206,17 +210,30 @@ class Watcher(object):
     _req_action_fields = [ 'cmd', 'args' ]
     _req_time_fields = ['start_time', 'end_time']
 
-    def __init__(self, watch_data, callback_func = None):
-        """Start a watcher with watch_data
-        :type: dict
-        :param watch_data: Dictionary with watch data to use. Eg
-        watch_data = {'/tmp/testdir': {'name': 'Some file',
-        'filemasks': { 'somefile.txt' : {
-        'actions': [ { 'echoFile': { 'cmd' : 'echo', 'args' : [ '$filename', 'YYYYMMDD' ] } } ] } } } }
+    def __init__(self, watch_data,
+                 callback_func=None,
+                 num_workers=10):
+        """Start a watcher with watch data
+        
+        :param watch_data: Dictionary with watch data to use. For example ::
+        
+          watch_data = {'/tmp/testdir': {
+                            'name': 'Some file',
+                            'filemasks': { 'somefile.txt' : {
+                                'actions': [ { 'echoFile': {
+                                               'cmd' : 'echo',
+                                               'args' : [
+                                                   '$filename', 'YYYYMMDD' ] }
+                                              },
+                                            ]
+                            }}}}
+        
         Can have multiple directories to watch as well as multiple filemasks per directory and multiple actions per filemask
-        :type: function reference
+        :type watch_data: dict
         :param callback_func: Optional callback function to be called when an action is triggered.
         There should be only one positional parameter in callback_func for the event object to be passed in
+        :type callback_func: function
+        :param num_workers: Number of worker threads in actions worker queue
         """
         self.watch_managers, self.notifiers = [], []
         self.callback_func = callback_func
@@ -225,7 +242,7 @@ class Watcher(object):
             sys.exit(1)
         self.watch_data = watch_data
         [self._check_timezone_info(self.watch_data[watch]) for watch in self.watch_data]
-        self.thread_pool = threadpool.ThreadPool(num_workers = 10)
+        self.thread_pool = threadpool.ThreadPool(num_workers=num_workers)
         self.start_watchers(self.watch_data)
         signal.signal(signal.SIGUSR1, self.reload_signal_handler)
         self.asyncore_thread = None
