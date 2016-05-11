@@ -62,9 +62,10 @@ class CronifyDaemon(object):
         _handler = logging.handlers.TimedRotatingFileHandler(LOG_FILE, when = "midnight", interval = 1, backupCount = 7)
         log_format = logging.Formatter('%(name)s - %(threadName)s - %(asctime)s - %(levelname)s - %(message)s')
         _handler.setFormatter(log_format)
-        [logger.addHandler(_handler) for logger in loggers]
-        [logger.setLevel(logging.INFO) for logger in loggers]
-
+        for logger in loggers:
+            logger.addHandler(_handler)
+            logger.setLevel(logging.INFO)
+    
     def run(self):
         """Startup our watcher and sleep forever (an hour at a time..)"""
         # testy()

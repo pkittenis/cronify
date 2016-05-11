@@ -2,13 +2,21 @@ language: python
 python:
   - 2.6
   - 2.7
+  - 3.4
+  - 3.5
 before_install:
   - git submodule update --init --recursive
 install:
   - pip install -r requirements.txt --use-mirrors
-script: nosetests
+  - pip install coveralls
+script:
+  - python setup.py nosetests
+  # If using py3, run 2to3 on embedded server and tests and run nosetests for new test dir
+  - python -c 'import sys; sys.version_info >= (3,) and sys.exit(1)' || eval "2to3 tests/*.py -o tests3 -nw && python setup.py nosetests -w tests3"
 notifications:
   email:
     on_failure: change
-pip: cache
+cache: pip
 sudo: false
+after_success:
+  - coveralls

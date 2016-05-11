@@ -1,5 +1,23 @@
+# This file is part of cronify
+
+# Copyright (C) 2016 Panos Kittenis
+
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, version 2.1.
+
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 
 """Main cronify package. Contains main Watcher class and EventHandler"""
+
 
 import os
 import pyinotify
@@ -40,9 +58,9 @@ def run_script(cmd_args):
     stdout, stderr = proc.communicate()
     return proc.returncode, stdout, stderr
 
-class EventHandler(pyinotify.ProcessEvent):
 
-    """pyinotify.ProcessEvent subclass, implements handlers for our actions.
+class EventHandler(pyinotify.ProcessEvent):
+    """:mod:`pyinotify.ProcessEvent` subclass, implements handlers for our actions.
     
     Triggers actions on events that match our filemasks, queues/runs actions and
     outputs action results
@@ -202,38 +220,41 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
 class Watcher(object):
-
+    
     """Watcher class to watch a directory and trigger actions"""
-
+    
     _req_data_fields = [ 'name', 'filemasks' ]
     _req_filemask_fields = [ 'actions' ]
     _req_action_fields = [ 'cmd', 'args' ]
     _req_time_fields = ['start_time', 'end_time']
-
+    
     def __init__(self, watch_data,
                  callback_func=None,
                  num_workers=10):
-        """Start a watcher with watch data
+        """
+        Start a watcher with watch data
         
-        :param watch_data: Dictionary with watch data to use. For example ::
-        
-          watch_data = {'/tmp/testdir': {
-                            'name': 'Some file',
-                            'filemasks': { 'somefile.txt' : {
-                                'actions': [ { 'echoFile': {
-                                               'cmd' : 'echo',
-                                               'args' : [
-                                                   '$filename', 'YYYYMMDD' ] }
-                                              },
-                                            ]
-                            }}}}
-        
+        :param watch_data: Dictionary with watch data to use \
         Can have multiple directories to watch as well as multiple filemasks per directory and multiple actions per filemask
         :type watch_data: dict
-        :param callback_func: Optional callback function to be called when an action is triggered.
+        :param callback_func: Optional callback function to be called when an action is triggered. \
         There should be only one positional parameter in callback_func for the event object to be passed in
         :type callback_func: function
         :param num_workers: Number of worker threads in actions worker queue
+
+        For example ::
+        
+          watch_data = {'/tmp/testdir': {
+                        'name': 'Some file',
+                        'filemasks': { 'somefile.txt' : {
+                        'actions': [ { 'echoFile': {
+                                       'cmd' : 'echo',
+                                       'args' : [
+                                       '$filename', 'YYYYMMDD' ] }
+                                      },
+                                   ]
+                        }}}}
+        
         """
         self.watch_managers, self.notifiers = [], []
         self.callback_func = callback_func
@@ -259,8 +280,10 @@ class Watcher(object):
 
     def check_watch_data(self, watch_data):
         """Check that watch_data is valid
+        
         :rtype: bool
-        :return: True if watch_data is valid, False otherwise"""
+        :return: True if watch_data is valid, False otherwise
+        """
         if not self._check_data_fields(watch_data, self._req_data_fields):
             return False
         try:
@@ -288,13 +311,15 @@ class Watcher(object):
 
     def _check_data_fields(self, data, req_fields):
         """Check for required data fields
+        
         :type: dict
         :param data: Dictionary containing data to check
         :type: list
         :param req_fields: List of required fields that are required in data dictionary
         :rtype: bool
         :returns: False if any required fields are missing
-        :returns: True if all required fields are present"""
+        :returns: True if all required fields are present
+        """
         if not data:
             logger.critical("Configuration data for %s is empty, cannot continue", (req_fields,))
             return False
@@ -331,8 +356,11 @@ class Watcher(object):
         self.asyncore_thread.daemon = True
         self.asyncore_thread.start()
 
-    def update_watchers(self, watch_data = None):
-        """Try and update watchers with new watch_data from cfg file"""
+    def update_watchers(self, watch_data=None):
+        """
+        Try and update watchers with new watch_data.
+        Watch data is re-read from cfg file if not provided
+        """
         if not watch_data:
             watch_data = read_cfg(open(CFG_FILE, 'r'))
         if not watch_data:

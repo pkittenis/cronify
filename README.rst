@@ -1,11 +1,11 @@
 cronify
 ============
 
-Cronify is an event based task scheduler that uses the Linux kernels' inotify API. An Inotify cron implementation if you will.
+Cronify is a file event based task scheduler that uses the Linux kernels' inotify API. An Inotify cron implementation if you will.
 
-It allows for triggering of actions when files appear in a directory, with configurable action parameters that can be file data such as file name and file datetime and for scheduling actions to be run within a certain time period among other things.
+It allows for triggering of actions when a file event occurs, with configurable action parameters that can be file data such as file name and file datetime and for scheduling actions to be run within a certain time period among other things.
 
-Once installed, it is run as a service, or daemon, much like cron itself. You may of course run cronify as a python module as well.
+Once installed, it is run as a service, or daemon, much like cron itself. Cronify may also be used as a python library.
 
 The service's configuration is YAML based.
 
@@ -103,8 +103,6 @@ Known limitations
 *******************
 
 - Currently queued actions will be _lost_ upon a service restart.
-
-- Reloading of the cronify configuration file is not yet possible without a restart.
 
 - When using recurse, inotify is limited to watching N number of subdirectories in the tree, where N is value of /proc/sys/fs/inotify/max_user_watches. See http://linux.die.net/man/7/inotify
 
